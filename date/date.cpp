@@ -6,6 +6,16 @@ namespace _date_sys {
 
 	bool _all_debug = false;
 
+	std::unordered_map<int, std::string> _dweek = { //даю каждому номеру день недели
+		{1, "Mon"},
+		{2, "Tue"},
+		{3, "Wed"},
+		{4, "Thu"},
+		{5, "Fri"}, 
+		{6, "Sat"}, 
+		{7, "Sun"}
+	};
+
 	std::unordered_map<std::string, int> _mes_int = { //даю каждому месяцу номер
 		{"Jan", 1},
 		{"Feb", 2},
@@ -85,8 +95,8 @@ namespace _date_sys {
 		if (__mes > 12 || __mes <= 0)
 			return false;	
 
-		if (__day > _mes_day.upper_bound(__mes - 1)->second &&
-			 	__day <= 0 && __mes != 2) //весокосный год и февраль 
+		if ((__day > _mes_day.upper_bound(__mes - 1)->second ||
+			 	__day <= 0) && __mes != 2) //весокосный год и февраль 
 			return false;			  //проверю отдельно
 
 		if ((__god % 100 != 0 || __god % 400 == 0) && __god % 4 == 0) { //проверяю весокосный год и 
@@ -100,7 +110,7 @@ namespace _date_sys {
 
 	bool dateIsCorrect (int __day, int __mes, int __god) {
 		//сведу к уже определенной версии, после маленькой проверки
-		if (__day > 99 || __day < 0 || __mes > 99 || __mes < 0 || __god > 9999 || __god < 0)
+		if (__day > 99 || __day <= 0 || __mes > 99 || __mes <= 0 || __god > 9999 || __god <= 0)
 			return false;
 		std::string __d = std::string() + char(__day / 10 + '0') + char(__day % 10 + '0') + '.' +
 			char(__mes / 10 + '0') + char(__mes % 10 + '0') + '.' + char(__god / 1000 + '0') +
@@ -160,6 +170,37 @@ date::date (const char __a[11]) {
 	this->setDate(std::string(__a));
 }
 
+date::date (int __a) {
+	if (__a == 0) //оставляю дату несуществующей
+		return;
+
+	__a--;
+	int __god = (__a / (365 + 365 + 365 + 366)) * 4 +        //по несложной формуле вычисляю год
+					(__a % (365 + 365 + 365 + 366)) / 365 + 1;		
+
+	bool __vs = ((__god % 100 != 0 || __god % 400 == 0) && __god % 4 == 0); //весокосный ли год				
+
+	int __days = __a - ((__god - 1)  / 4 * (365 + 365 + 365 + 366) + 
+					(__god - 1)  % 4 * 365); //сколько дней прошло в этом году
+
+	int __mes = 1; //высчитываю месяц и день
+	for (auto it = _date_sys::_mes_day.begin(); it != _date_sys::_mes_day.end(); ++it) {
+		if (__vs && it->second == 28)
+			continue;
+		if (!__vs && it->second == 29)
+			continue;
+
+		if (__days >= it->second) {
+			__days -= it->second;
+			__mes++;
+		} else 
+			break;
+	}
+
+	int __day = 1 + __days;
+ 
+	this->setDate(__day, __mes, __god);
+}
 
 //------
 
@@ -488,6 +529,15 @@ int date::getYear () {
 	return _god;
 }
 
+//получаю день недели, знаю информацию о дне недели одного дня
+
+std::string date::getDayOfWeek () {
+	//737655 - понедельник
+	if (int(*this) >= 737655)
+		return _date_sys::_dweek[(*this - 737655) % 7 + 1];
+	return _date_sys::_dweek[(7 - abs(*this - 737655) % 7) % 7 + 1];
+}
+
 //======
 
 //---дебаг---
@@ -510,10 +560,62 @@ void date::clear () {
 
 //======
 
+//---оператора преобразования---
 
-//---операторы сравнения---
+date::operator int () {
 
-bool operator== (const date& __a, const date& __b) {
+	if (!this->_existDate) //если дата не существует, считаю ее равной 0
+		return 0;
+
+	int __out = (this->_god - 1)  / 4 * (365 + 365 + 365 + 366) + 
+					(this->_god - 1)  % 4 * 365; //по несложной формуле, вычисляю,
+												 //сколько полных лет прошло (в днях)
+	bool __vs = ((this->_god - 1)  / 4 + 1) * (365 + 365 + 365 + 366) - //весокосный ли год
+					__out == 366; 
+
+	for (auto it = _date_sys::_mes_day.begin();     //считаю сколько дней прошло (по месяцам)
+			it != _date_sys::_mes_day.end(); ++it) {
+
+		if (it->first == this->_mes)
+			break;
+
+		if (it->second == 28 && __vs)
+			continue;
+
+		if (it->second == 29 && !__vs)
+			continue;
+
+		__out += it->second;
+	}
+
+	__out += this->_day;    //прибавляю оставшиеся дни
+
+	return __out;
+}
+
+date::operator std::string () {
+	//свожу к определенной функцие
+	std::string __out = this->getDate();
+	return __out;
+}
+
+date::operator std::vector<int> () {
+	//проверяю, существует ли дата
+	if (!this->_existDate) {
+		if (this->_debug)
+			std::cout << "error_date: operator std::vector<int>(), date not exist\n";
+		return std::vector<int>{};
+	}
+
+	return std::vector<int>{this->_day, this->_mes, this->_god};
+}
+
+//------
+
+
+//===операторы сравнения===
+
+bool operator== (date __a, date __b) {
 	if (__a._existDate != __b._existDate) //если у кого-то дата существует, они точно не равны
 		return false;
 
@@ -527,11 +629,11 @@ bool operator== (const date& __a, const date& __b) {
 }
 
 //свожу к уже определенной функцие
-bool operator!= (const date& __a, const date& __b) {
+bool operator!= (date __a, date __b) {
 	return !(__a == __b);
 }
 
-bool operator> (const date& __a, const date& __b) {
+bool operator> (date __a, date __b) {
 	if (__a._existDate && !__b._existDate) //я считаю существующую дату больше несуществующей
 		return true;
 	if (!__a._existDate && __b._existDate)
@@ -557,28 +659,28 @@ bool operator> (const date& __a, const date& __b) {
 }
 
 //свожу к уже определенной функцие
-bool operator< (const date& __a, const date& __b) {
+bool operator< (date __a, date __b) {
 	return (__b > __a);
 }
 
 //оставшиеся операторы сравнения легко сводятся к определенным операторам
-bool operator>= (const date& __a, const date& __b) {
+bool operator>= (date __a, date __b) {
 	return ((__a == __b) || (__a > __b));
 }
 
-bool operator<= (const date& __a, const date& __b) {
+bool operator<= (date __a, date __b) {
 	return ((__a == __b) || (__a < __b));
 }
 
-//------
+//======
 
 
-//===сеттер для _all_debug===
+//---сеттер для _all_debug---
 
 void _date_set_all_debug (bool __a) {
 	_date_sys::_all_debug = __a;
 }
 
-//======
+//------
 
 

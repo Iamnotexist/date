@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <ctime>
 #include <vector>
+#include <cmath>
 
 
 class date {
@@ -31,6 +32,7 @@ public:
 	date (const date&); //если на вход подается date
 	date (std::vector<int>); //если на вход подается вектор из 3 чисел
 	date (const char[11]); //если на вход подается строка вида "ДД.ММ.ГГГГ"
+	date (int); //если дата определяется как число дней от 01.01.0001 + 1
 
 	void getDate (std::string&); //возвращает дату ввиде строки по ссылке
 	std::string getDate (); //возвращает дату в виде строки
@@ -51,11 +53,12 @@ public:
 	date operator= (date); 
 
 	//геттеры
-	bool getDebugUse ();
-	bool getExist ();
-	int getDay ();
-	int getMonth ();
-	int getYear ();
+	bool getDebugUse (); //используется ли режим вывода
+	bool getExist (); //существует ли дата
+	int getDay (); //возвращает день
+	int getMonth (); //возвращает месяц
+	int getYear (); //возвращает год
+	std::string getDayOfWeek (); //возвращает день недели
 
 
 	//нужно ли выводить информацию об ошибках
@@ -64,23 +67,28 @@ public:
 	//чищу объект
 	void clear ();
 
+	//операторы преобразования 
+	operator int ();
+	operator std::string ();
+	operator std::vector<int> ();
+
 
 	//даю доступ к private
-	friend bool operator== (const date&, const date&);
-	friend bool operator!= (const date&, const date&);
-	friend bool operator> (const date&, const date&);
-	friend bool operator< (const date&, const date&);
-	friend bool operator>= (const date&, const date&);
-	friend bool operator<= (const date&, const date&);
+	friend bool operator== (date, date);
+	friend bool operator!= (date, date);
+	friend bool operator> (date, date);
+	friend bool operator< (date, date);
+	friend bool operator>= (date, date);
+	friend bool operator<= (date, date);
 };
 
 //переопределяю операторы сравнения
-bool operator== (const date&, const date&);
-bool operator!= (const date&, const date&);
-bool operator> (const date&, const date&);
-bool operator< (const date&, const date&);
-bool operator>= (const date&, const date&);
-bool operator<= (const date&, const date&);
+bool operator== (date, date);
+bool operator!= (date, date);
+bool operator> (date, date);
+bool operator< (date, date);
+bool operator>= (date, date);
+bool operator<= (date, date);
 
 //сеттер для переменной _all_debug
 
