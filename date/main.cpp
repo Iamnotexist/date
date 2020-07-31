@@ -1,8 +1,6 @@
 #include  "date.h"
 using namespace std;
 
-#define date_debug
-
 int main () {
 
 	_date_set_all_debug(true);
