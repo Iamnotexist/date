@@ -1,4 +1,4 @@
-#include  "date.h"
+#include  "../date.h"
 using namespace std;
 
 int main () {
